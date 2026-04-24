@@ -179,4 +179,60 @@ class ChatMarkdownExporterTest {
 
     private fun platform(uid: String, name: String): PlatformV2 =
         PlatformV2(uid = uid, name = name, compatibleType = ClientType.OPENAI, apiUrl = "", model = "")
+
+    @Test
+    fun `buildZip contains one entry per input with expected names and bodies`() {
+        val bytes = ChatMarkdownExporter.buildZip(
+            listOf(
+                "alpha.md" to "alpha body",
+                "beta.md" to "beta body"
+            )
+        )
+
+        val readBack = readZipEntries(bytes)
+
+        assertEquals(setOf("alpha.md", "beta.md"), readBack.keys)
+        assertEquals("alpha body", readBack["alpha.md"])
+        assertEquals("beta body", readBack["beta.md"])
+    }
+
+    @Test
+    fun `buildZip preserves insertion order of entries`() {
+        val bytes = ChatMarkdownExporter.buildZip(
+            listOf(
+                "zeta.md" to "z",
+                "alpha.md" to "a"
+            )
+        )
+
+        val order = readZipEntryOrder(bytes)
+
+        assertEquals(listOf("zeta.md", "alpha.md"), order)
+    }
+
+    private fun readZipEntries(bytes: ByteArray): Map<String, String> {
+        val out = mutableMapOf<String, String>()
+        java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(bytes)).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                out[entry.name] = zis.readBytes().toString(Charsets.UTF_8)
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+        return out
+    }
+
+    private fun readZipEntryOrder(bytes: ByteArray): List<String> {
+        val out = mutableListOf<String>()
+        java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(bytes)).use { zis ->
+            var entry = zis.nextEntry
+            while (entry != null) {
+                out.add(entry.name)
+                zis.closeEntry()
+                entry = zis.nextEntry
+            }
+        }
+        return out
+    }
 }

@@ -73,4 +73,16 @@ object ChatMarkdownExporter {
 
         return users to orderedAssistants
     }
+
+    fun buildZip(entries: List<Pair<String, String>>): ByteArray {
+        val buffer = java.io.ByteArrayOutputStream()
+        java.util.zip.ZipOutputStream(buffer).use { zos ->
+            entries.forEach { (name, content) ->
+                zos.putNextEntry(java.util.zip.ZipEntry(name))
+                zos.write(content.toByteArray(Charsets.UTF_8))
+                zos.closeEntry()
+            }
+        }
+        return buffer.toByteArray()
+    }
 }
