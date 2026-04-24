@@ -15,9 +15,11 @@ import dev.chungjungsoo.gptmobile.data.database.entity.PlatformV2
 import dev.chungjungsoo.gptmobile.data.repository.AttachmentUploadCoordinator
 import dev.chungjungsoo.gptmobile.data.repository.ChatRepository
 import dev.chungjungsoo.gptmobile.data.repository.SettingRepository
+import dev.chungjungsoo.gptmobile.presentation.common.ExportArtifact
 import dev.chungjungsoo.gptmobile.util.AttachmentPayloadCache
+import dev.chungjungsoo.gptmobile.util.ChatMarkdownExporter
+import dev.chungjungsoo.gptmobile.util.ExportFilenames
 import dev.chungjungsoo.gptmobile.util.FileUtils
-import dev.chungjungsoo.gptmobile.util.getPlatformName
 import dev.chungjungsoo.gptmobile.util.handleStates
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -330,36 +332,20 @@ class ChatViewModel @Inject constructor(
         completeChat()
     }
 
-    fun exportChat(): Pair<String, String> {
-        // Build the chat history in Markdown format
-        val chatHistoryMarkdown = buildString {
-            appendLine("# Chat Export: \"${chatRoom.value.title}\"")
-            appendLine()
-            appendLine("**Exported on:** ${formatCurrentDateTime()}")
-            appendLine()
-            appendLine("---")
-            appendLine()
-            appendLine("## Chat History")
-            appendLine()
-            _groupedMessages.value.userMessages.forEachIndexed { i, message ->
-                appendLine("**User:**")
-                appendLine(message.content)
-                appendLine()
+    fun exportChat(): ExportArtifact {
+        val markdown = ChatMarkdownExporter.buildMarkdown(
+            chat = _chatRoom.value,
+            userMessages = _groupedMessages.value.userMessages,
+            assistantMessages = _groupedMessages.value.assistantMessages,
+            platforms = _platformsInApp.value,
+            exportedOn = formatCurrentDateTime()
+        )
 
-                _groupedMessages.value.assistantMessages[i].forEach { message ->
-                    val platformName = message.platformType
-                        ?.let { _platformsInApp.value.getPlatformName(it) }
-                        ?: "Unknown"
-                    appendLine("**Assistant ($platformName):**")
-                    appendLine(message.content)
-                    appendLine()
-                }
-            }
-        }
-
-        // Save the Markdown file
-        val fileName = "export_${chatRoom.value.title}_${System.currentTimeMillis()}.md"
-        return Pair(fileName, chatHistoryMarkdown)
+        return ExportArtifact(
+            fileName = ExportFilenames.buildSingleChatFileName(_chatRoom.value, System.currentTimeMillis()),
+            bytes = markdown.toByteArray(Charsets.UTF_8),
+            mimeType = "text/markdown"
+        )
     }
 
     private fun completeChat() {

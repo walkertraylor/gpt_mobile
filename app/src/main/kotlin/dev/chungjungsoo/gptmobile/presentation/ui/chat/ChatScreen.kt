@@ -2,9 +2,6 @@ package dev.chungjungsoo.gptmobile.presentation.ui.chat
 
 import android.content.ClipData
 import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -86,12 +83,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider.getUriForFile
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.chungjungsoo.gptmobile.R
 import dev.chungjungsoo.gptmobile.data.database.entity.MessageV2
 import dev.chungjungsoo.gptmobile.data.database.entity.PlatformV2
+import dev.chungjungsoo.gptmobile.presentation.common.shareExport
 import java.io.File
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -180,7 +177,13 @@ fun ChatScreen(
                 scrollBehavior,
                 chatViewModel::openChatTitleDialog,
                 chatViewModel::openChatModelDialog,
-                onExportChatItemClick = { exportChat(context, chatViewModel) }
+                onExportChatItemClick = {
+                    try {
+                        shareExport(context, chatViewModel.exportChat())
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Failed to export chat", Toast.LENGTH_SHORT).show()
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -572,31 +575,6 @@ fun ChatBubbleDropdownMenu(
                 onDismissRequest.invoke()
             }
         )
-    }
-}
-
-private fun exportChat(context: Context, chatViewModel: ChatViewModel) {
-    try {
-        val (fileName, fileContent) = chatViewModel.exportChat()
-        val file = File(context.getExternalFilesDir(null), fileName)
-        file.writeText(fileContent)
-        val uri = getUriForFile(context, "${context.packageName}.fileprovider", file)
-        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/markdown"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        val chooser = Intent.createChooser(shareIntent, "Share Chat Export").apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        val resInfo = context.packageManager.queryIntentActivities(chooser, PackageManager.MATCH_DEFAULT_ONLY)
-        resInfo.forEach { res ->
-            context.grantUriPermission(res.activityInfo.packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        context.startActivity(chooser)
-    } catch (e: Exception) {
-        Log.e("ChatExport", "Failed to export chat", e)
-        Toast.makeText(context, "Failed to export chat", Toast.LENGTH_SHORT).show()
     }
 }
 
