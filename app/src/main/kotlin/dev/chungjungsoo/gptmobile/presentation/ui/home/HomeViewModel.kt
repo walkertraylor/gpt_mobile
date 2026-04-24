@@ -8,7 +8,11 @@ import dev.chungjungsoo.gptmobile.data.database.entity.ChatRoomV2
 import dev.chungjungsoo.gptmobile.data.database.entity.PlatformV2
 import dev.chungjungsoo.gptmobile.data.repository.ChatRepository
 import dev.chungjungsoo.gptmobile.data.repository.SettingRepository
+import dev.chungjungsoo.gptmobile.presentation.common.ExportArtifact
+import dev.chungjungsoo.gptmobile.util.ChatMarkdownExporter
+import dev.chungjungsoo.gptmobile.util.ExportFilenames
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +23,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -190,6 +195,69 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun selectAllChats() {
+        val anyUnselected = _chatListState.value.selectedChats.any { !it }
+
+        if (anyUnselected) {
+            _chatListState.update {
+                it.copy(selectedChats = List(it.chats.size) { true })
+            }
+        } else {
+            disableSelectionMode()
+        }
+    }
+
+    suspend fun exportSelectedChats(): ExportArtifact? {
+        val selected = _chatListState.value.chats.filterIndexed { idx, _ ->
+            _chatListState.value.selectedChats[idx]
+        }
+
+        if (selected.isEmpty()) return null
+
+        val exportedOn = formatCurrentDateTime()
+        val platforms = _platformState.value
+
+        val perChatMarkdown = withContext(Dispatchers.IO) {
+            selected.map { chat ->
+                val messages = chatRepository.fetchMessagesV2(chat.id)
+                val grouped = ChatMarkdownExporter.groupMessagesForExport(
+                    messages = messages,
+                    enabledPlatformOrder = chat.enabledPlatform
+                )
+                chat to ChatMarkdownExporter.buildMarkdown(
+                    chat = chat,
+                    userMessages = grouped.first,
+                    assistantMessages = grouped.second,
+                    platforms = platforms,
+                    exportedOn = exportedOn
+                )
+            }
+        }
+
+        val artifact = if (perChatMarkdown.size == 1) {
+            val (chat, markdown) = perChatMarkdown.single()
+            ExportArtifact(
+                fileName = ExportFilenames.buildSingleChatFileName(chat, System.currentTimeMillis()),
+                bytes = markdown.toByteArray(Charsets.UTF_8),
+                mimeType = "text/markdown"
+            )
+        } else {
+            val fileNames = ExportFilenames.buildChatFileNames(selected)
+            val entries = perChatMarkdown.map { (chat, markdown) ->
+                (fileNames[chat.id] ?: "chat_${chat.id}.md") to markdown
+            }
+            val zipBytes = withContext(Dispatchers.IO) { ChatMarkdownExporter.buildZip(entries) }
+            ExportArtifact(
+                fileName = ExportFilenames.buildArchiveFileName(System.currentTimeMillis()),
+                bytes = zipBytes,
+                mimeType = "application/zip"
+            )
+        }
+
+        disableSelectionMode()
+        return artifact
+    }
+
     fun selectChat(chatRoomIdx: Int) {
         if (chatRoomIdx < 0 || chatRoomIdx > _chatListState.value.chats.size) return
 
@@ -208,5 +276,11 @@ class HomeViewModel @Inject constructor(
         if (_chatListState.value.selectedChats.count { it } == 0) {
             disableSelectionMode()
         }
+    }
+
+    private fun formatCurrentDateTime(): String {
+        val currentDate = java.util.Date()
+        val format = java.text.SimpleDateFormat("yyyy-MM-dd hh:mm a", java.util.Locale.getDefault())
+        return format.format(currentDate)
     }
 }
