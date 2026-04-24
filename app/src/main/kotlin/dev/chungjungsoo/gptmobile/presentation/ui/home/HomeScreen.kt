@@ -23,6 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
@@ -49,6 +51,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,7 +77,9 @@ import dev.chungjungsoo.gptmobile.R
 import dev.chungjungsoo.gptmobile.data.database.entity.ChatRoomV2
 import dev.chungjungsoo.gptmobile.data.database.entity.PlatformV2
 import dev.chungjungsoo.gptmobile.presentation.common.PlatformCheckBoxItem
+import dev.chungjungsoo.gptmobile.presentation.common.shareExport
 import dev.chungjungsoo.gptmobile.util.getPlatformName
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -94,6 +99,7 @@ fun HomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val lifecycleState by lifecycleOwner.lifecycle.currentStateFlow.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(lifecycleState) {
         if (lifecycleState == Lifecycle.State.RESUMED && !chatListState.isSelectionMode && !chatListState.isSearchMode) {
@@ -117,6 +123,7 @@ fun HomeScreen(
                 isSelectionMode = chatListState.isSelectionMode,
                 isSearchMode = chatListState.isSearchMode,
                 selectedChats = chatListState.selectedChats.count { it },
+                allChatsCount = chatListState.chats.size,
                 scrollBehavior = scrollBehavior,
                 actionOnClick = {
                     if (chatListState.isSelectionMode) {
@@ -128,6 +135,17 @@ fun HomeScreen(
                 duplicateOnClick = {
                     homeViewModel.duplicateSelectedChat()
                     Toast.makeText(context, context.getString(R.string.duplicated_chat), Toast.LENGTH_SHORT).show()
+                },
+                selectAllOnClick = homeViewModel::selectAllChats,
+                exportOnClick = {
+                    scope.launch {
+                        try {
+                            val artifact = homeViewModel.exportSelectedChats() ?: return@launch
+                            shareExport(context, artifact)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, context.getString(R.string.export_chats_failed), Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 },
                 navigationOnClick = {
                     if (chatListState.isSelectionMode) {
@@ -253,9 +271,12 @@ fun HomeTopAppBar(
     isSelectionMode: Boolean,
     isSearchMode: Boolean,
     selectedChats: Int,
+    allChatsCount: Int,
     scrollBehavior: TopAppBarScrollBehavior,
     actionOnClick: () -> Unit,
     duplicateOnClick: () -> Unit,
+    selectAllOnClick: () -> Unit,
+    exportOnClick: () -> Unit,
     navigationOnClick: () -> Unit,
     onSearchQueryChanged: (String) -> Unit,
     searchQuery: String
@@ -358,6 +379,17 @@ fun HomeTopAppBar(
         actions = {
             when {
                 isSelectionMode -> {
+                    IconButton(
+                        modifier = Modifier.padding(4.dp),
+                        enabled = allChatsCount > 0,
+                        onClick = selectAllOnClick
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.SelectAll,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            contentDescription = stringResource(R.string.select_all)
+                        )
+                    }
                     if (selectedChats == 1) {
                         IconButton(
                             modifier = Modifier.padding(4.dp),
@@ -368,6 +400,18 @@ fun HomeTopAppBar(
                                 imageVector = Icons.Outlined.ContentCopy,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                                 contentDescription = stringResource(R.string.duplicate)
+                            )
+                        }
+                    }
+                    if (selectedChats >= 1) {
+                        IconButton(
+                            modifier = Modifier.padding(4.dp),
+                            onClick = exportOnClick
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.FileDownload,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                contentDescription = stringResource(R.string.export_chats)
                             )
                         }
                     }
