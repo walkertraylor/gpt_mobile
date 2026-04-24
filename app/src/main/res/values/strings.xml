@@ -280,4 +280,7 @@
     <string name="platform_added_successfully">Platform added successfully</string>
     <string name="at_least_one_platform_required">Add at least one platform to continue</string>
     <string name="remove">Remove</string>
+    <string name="select_all">Select all</string>
+    <string name="export_chats">Export</string>
+    <string name="export_chats_failed">Failed to export chats</string>
 </resources>
