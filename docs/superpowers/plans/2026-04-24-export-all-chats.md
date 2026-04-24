@@ -170,7 +170,7 @@ class ExportFilenamesTest {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `./gradlew test --tests "dev.chungjungsoo.gptmobile.util.ExportFilenamesTest"`
+Run: `./gradlew :app:testDebugUnitTest --tests "dev.chungjungsoo.gptmobile.util.ExportFilenamesTest"`
 
 Expected: FAIL — `ExportFilenames` symbol does not resolve.
 
@@ -235,7 +235,7 @@ object ExportFilenames {
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `./gradlew test --tests "dev.chungjungsoo.gptmobile.util.ExportFilenamesTest"`
+Run: `./gradlew :app:testDebugUnitTest --tests "dev.chungjungsoo.gptmobile.util.ExportFilenamesTest"`
 
 Expected: PASS — all 10 tests green.
 
@@ -445,7 +445,7 @@ class ChatMarkdownExporterTest {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `./gradlew test --tests "dev.chungjungsoo.gptmobile.util.ChatMarkdownExporterTest"`
+Run: `./gradlew :app:testDebugUnitTest --tests "dev.chungjungsoo.gptmobile.util.ChatMarkdownExporterTest"`
 
 Expected: FAIL — `ChatMarkdownExporter` symbol does not resolve.
 
@@ -528,7 +528,7 @@ The grouping logic mirrors `ChatViewModel.fetchGroupedMessages` (sort by `create
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `./gradlew test --tests "dev.chungjungsoo.gptmobile.util.ChatMarkdownExporterTest"`
+Run: `./gradlew :app:testDebugUnitTest --tests "dev.chungjungsoo.gptmobile.util.ChatMarkdownExporterTest"`
 
 Expected: PASS — 4 tests green.
 
@@ -625,7 +625,7 @@ Append to `app/src/test/kotlin/dev/chungjungsoo/gptmobile/util/ChatMarkdownExpor
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `./gradlew test --tests "dev.chungjungsoo.gptmobile.util.ChatMarkdownExporterTest"`
+Run: `./gradlew :app:testDebugUnitTest --tests "dev.chungjungsoo.gptmobile.util.ChatMarkdownExporterTest"`
 
 Expected: FAIL — `buildZip` not defined.
 
@@ -649,7 +649,7 @@ Add to `app/src/main/kotlin/dev/chungjungsoo/gptmobile/util/ChatMarkdownExporter
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `./gradlew test --tests "dev.chungjungsoo.gptmobile.util.ChatMarkdownExporterTest"`
+Run: `./gradlew :app:testDebugUnitTest --tests "dev.chungjungsoo.gptmobile.util.ChatMarkdownExporterTest"`
 
 Expected: PASS — 6 tests green.
 
@@ -761,7 +761,7 @@ Rationale for rethrowing: callers already show context-appropriate toasts on fai
 
 - [ ] **Step 3: Verify compilation**
 
-Run: `./gradlew assembleDebug`
+Run: `./gradlew :app:assembleDebug`
 
 Expected: BUILD SUCCESSFUL. Nothing references the new files yet; the task is about making them available for Tasks 5 and 7.
 
@@ -860,7 +860,7 @@ In `app/src/main/kotlin/dev/chungjungsoo/gptmobile/presentation/ui/chat/ChatScre
 
 - [ ] **Step 3: Run the full unit-test suite**
 
-Run: `./gradlew test`
+Run: `./gradlew :app:testDebugUnitTest`
 
 Expected: PASS. The markdown produced by `exportChat()` is byte-equivalent to what `ChatMarkdownExporterTest` already covers.
 
@@ -868,7 +868,7 @@ Expected: PASS. The markdown produced by `exportChat()` is byte-equivalent to wh
 
 ```bash
 ./tools/ktlint.sh --format
-./gradlew assembleDebug
+./gradlew :app:assembleDebug
 ```
 
 Expected: both succeed.
@@ -914,7 +914,7 @@ Match the existing indentation in that file.
 
 - [ ] **Step 2: Build to verify**
 
-Run: `./gradlew assembleDebug`
+Run: `./gradlew :app:assembleDebug`
 
 Expected: BUILD SUCCESSFUL.
 
@@ -1041,8 +1041,8 @@ import kotlinx.coroutines.withContext
 
 ```bash
 ./tools/ktlint.sh --format
-./gradlew test
-./gradlew assembleDebug
+./gradlew :app:testDebugUnitTest
+./gradlew :app:assembleDebug
 ```
 
 Expected: all green.
@@ -1220,8 +1220,8 @@ Inside `actions = { ... }`, update the `isSelectionMode ->` branch to:
 
 ```bash
 ./tools/ktlint.sh --format
-./gradlew assembleDebug
-./gradlew test
+./gradlew :app:assembleDebug
+./gradlew :app:testDebugUnitTest
 ```
 
 Expected: all green.
@@ -1256,8 +1256,8 @@ This task is a checklist — no code changes, no new commit.
 ```bash
 ./gradlew clean
 ./tools/ktlint.sh
-./gradlew assembleDebug
-./gradlew test
+./gradlew :app:assembleDebug
+./gradlew :app:testDebugUnitTest
 ```
 
 All must succeed.
