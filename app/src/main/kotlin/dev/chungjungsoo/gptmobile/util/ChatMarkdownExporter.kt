@@ -35,6 +35,14 @@ object ChatMarkdownExporter {
         }
     }
 
+    /**
+     * Splits a flat message list into the parallel user/assistant shape the exporter expects.
+     *
+     * Mirrors ChatViewModel.fetchGroupedMessages: sorts by createdAt, starts a new user turn on
+     * every platformType == null row, and orders each assistant bucket by the chat's enabled
+     * platform list. Assistant rows that appear before any user row are dropped — the chat
+     * screen never persists such state, so this branch only matters for defence in depth.
+     */
     fun groupMessagesForExport(
         messages: List<MessageV2>,
         enabledPlatformOrder: List<String>

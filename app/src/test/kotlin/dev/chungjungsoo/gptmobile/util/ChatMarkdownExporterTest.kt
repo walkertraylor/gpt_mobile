@@ -12,6 +12,38 @@ import org.junit.Test
 class ChatMarkdownExporterTest {
 
     @Test
+    fun `buildMarkdown produces exact byte-for-byte format`() {
+        val openai = platform(uid = "openai-uid", name = "OpenAI")
+
+        val md = ChatMarkdownExporter.buildMarkdown(
+            chat = chat(title = "Hello"),
+            userMessages = listOf(userMessage("Hi")),
+            assistantMessages = listOf(
+                listOf(assistantMessage("Greetings", "openai-uid"))
+            ),
+            platforms = listOf(openai),
+            exportedOn = "2026-04-24 09:07 AM"
+        )
+
+        val expected = "# Chat Export: \"Hello\"\n" +
+            "\n" +
+            "**Exported on:** 2026-04-24 09:07 AM\n" +
+            "\n" +
+            "---\n" +
+            "\n" +
+            "## Chat History\n" +
+            "\n" +
+            "**User:**\n" +
+            "Hi\n" +
+            "\n" +
+            "**Assistant (OpenAI):**\n" +
+            "Greetings\n" +
+            "\n"
+
+        assertEquals(expected, md)
+    }
+
+    @Test
     fun `header includes chat title and exported on timestamp`() {
         val md = ChatMarkdownExporter.buildMarkdown(
             chat = chat(title = "Trip planning"),
