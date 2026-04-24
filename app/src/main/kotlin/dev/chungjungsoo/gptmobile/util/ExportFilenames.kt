@@ -29,7 +29,7 @@ object ExportFilenames {
 
         if (capped.isBlank()) return "chat"
 
-        return if (windowsReservedNames.contains(capped.uppercase(Locale.ROOT))) "${capped.uppercase(Locale.ROOT)}_" else capped
+        return if (windowsReservedNames.contains(capped.uppercase(Locale.ROOT))) "${capped}_" else capped
     }
 
     fun buildChatFileNames(chats: List<ChatRoomV2>): Map<Int, String> {

@@ -17,6 +17,7 @@ class ExportFilenamesTest {
 
     @Test
     fun `control characters are stripped`() {
+        assertEquals("abc", ExportFilenames.sanitizeChatTitle("abc"))
         assertEquals("hello world", ExportFilenames.sanitizeChatTitle("hello world"))
     }
 
@@ -28,11 +29,12 @@ class ExportFilenamesTest {
     }
 
     @Test
-    fun `windows reserved names get a trailing underscore`() {
+    fun `windows reserved names get a trailing underscore and preserve case`() {
         assertEquals("CON_", ExportFilenames.sanitizeChatTitle("CON"))
-        assertEquals("PRN_", ExportFilenames.sanitizeChatTitle("prn"))
+        assertEquals("prn_", ExportFilenames.sanitizeChatTitle("prn"))
         assertEquals("COM1_", ExportFilenames.sanitizeChatTitle("COM1"))
         assertEquals("LPT9_", ExportFilenames.sanitizeChatTitle("LPT9"))
+        assertEquals("Con_", ExportFilenames.sanitizeChatTitle("Con"))
     }
 
     @Test
