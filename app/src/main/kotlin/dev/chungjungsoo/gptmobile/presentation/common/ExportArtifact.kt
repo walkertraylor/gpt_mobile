@@ -1,22 +1,10 @@
 package dev.chungjungsoo.gptmobile.presentation.common
 
+import java.io.File
+
 data class ExportArtifact(
-    val fileName: String,
-    val bytes: ByteArray,
+    val file: File,
     val mimeType: String
 ) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is ExportArtifact) return false
-        return fileName == other.fileName &&
-            mimeType == other.mimeType &&
-            bytes.contentEquals(other.bytes)
-    }
-
-    override fun hashCode(): Int {
-        var result = fileName.hashCode()
-        result = 31 * result + bytes.contentHashCode()
-        result = 31 * result + mimeType.hashCode()
-        return result
-    }
+    val fileName: String get() = file.name
 }
