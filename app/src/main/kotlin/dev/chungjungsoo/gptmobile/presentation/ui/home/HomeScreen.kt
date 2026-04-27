@@ -140,10 +140,16 @@ fun HomeScreen(
                 exportOnClick = {
                     scope.launch {
                         try {
-                            val artifact = homeViewModel.exportSelectedChats() ?: return@launch
+                            val outputDir = context.getExternalFilesDir(null)
+                                ?: error("external files dir unavailable")
+                            val artifact = homeViewModel.exportSelectedChats(outputDir) ?: return@launch
                             shareExport(context, artifact)
                         } catch (e: Exception) {
-                            Toast.makeText(context, context.getString(R.string.export_chats_failed), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.export_chats_failed),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 },

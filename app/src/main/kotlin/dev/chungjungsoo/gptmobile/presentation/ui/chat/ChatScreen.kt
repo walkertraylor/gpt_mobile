@@ -179,7 +179,9 @@ fun ChatScreen(
                 chatViewModel::openChatModelDialog,
                 onExportChatItemClick = {
                     try {
-                        shareExport(context, chatViewModel.exportChat())
+                        val outputDir = context.getExternalFilesDir(null)
+                            ?: error("external files dir unavailable")
+                        shareExport(context, chatViewModel.exportChat(outputDir))
                     } catch (e: Exception) {
                         Toast.makeText(context, "Failed to export chat", Toast.LENGTH_SHORT).show()
                     }

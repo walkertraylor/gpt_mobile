@@ -332,7 +332,7 @@ class ChatViewModel @Inject constructor(
         completeChat()
     }
 
-    fun exportChat(): ExportArtifact {
+    fun exportChat(outputDir: java.io.File): ExportArtifact {
         val markdown = ChatMarkdownExporter.buildMarkdown(
             chat = _chatRoom.value,
             userMessages = _groupedMessages.value.userMessages,
@@ -341,11 +341,13 @@ class ChatViewModel @Inject constructor(
             exportedOn = formatCurrentDateTime()
         )
 
-        return ExportArtifact(
-            fileName = ExportFilenames.buildSingleChatFileName(_chatRoom.value, System.currentTimeMillis()),
-            bytes = markdown.toByteArray(Charsets.UTF_8),
-            mimeType = "text/markdown"
+        val file = java.io.File(
+            outputDir,
+            ExportFilenames.buildSingleChatFileName(_chatRoom.value, System.currentTimeMillis())
         )
+        file.writeText(markdown)
+
+        return ExportArtifact(file = file, mimeType = "text/markdown")
     }
 
     private fun completeChat() {
