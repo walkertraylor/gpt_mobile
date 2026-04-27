@@ -7,9 +7,15 @@ import dev.chungjungsoo.gptmobile.data.model.ClientType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 class ChatMarkdownExporterTest {
+
+    @get:Rule
+    val tempFolder = TemporaryFolder()
 
     @Test
     fun `buildMarkdown produces exact byte-for-byte format`() {
@@ -181,15 +187,15 @@ class ChatMarkdownExporterTest {
         PlatformV2(uid = uid, name = name, compatibleType = ClientType.OPENAI, apiUrl = "", model = "")
 
     @Test
-    fun `buildZip contains one entry per input with expected names and bodies`() {
-        val bytes = ChatMarkdownExporter.buildZip(
-            listOf(
-                "alpha.md" to "alpha body",
-                "beta.md" to "beta body"
-            )
-        )
+    fun `writeZip writes one entry per call to writeEntry`() {
+        val target = tempFolder.newFile("test.zip")
 
-        val readBack = readZipEntries(bytes)
+        ChatMarkdownExporter.writeZip(target) { writer ->
+            writer.writeEntry("alpha.md", "alpha body")
+            writer.writeEntry("beta.md", "beta body")
+        }
+
+        val readBack = readZipEntries(target)
 
         assertEquals(setOf("alpha.md", "beta.md"), readBack.keys)
         assertEquals("alpha body", readBack["alpha.md"])
@@ -197,22 +203,37 @@ class ChatMarkdownExporterTest {
     }
 
     @Test
-    fun `buildZip preserves insertion order of entries`() {
-        val bytes = ChatMarkdownExporter.buildZip(
-            listOf(
-                "zeta.md" to "z",
-                "alpha.md" to "a"
-            )
-        )
+    fun `writeZip preserves insertion order of entries`() {
+        val target = tempFolder.newFile("ordered.zip")
 
-        val order = readZipEntryOrder(bytes)
+        ChatMarkdownExporter.writeZip(target) { writer ->
+            writer.writeEntry("zeta.md", "z")
+            writer.writeEntry("alpha.md", "a")
+        }
 
-        assertEquals(listOf("zeta.md", "alpha.md"), order)
+        assertEquals(listOf("zeta.md", "alpha.md"), readZipEntryOrder(target))
     }
 
-    private fun readZipEntries(bytes: ByteArray): Map<String, String> {
+    @Test
+    fun `writeZip deletes the target file when the block throws`() {
+        val target = tempFolder.newFile("doomed.zip")
+
+        try {
+            ChatMarkdownExporter.writeZip(target) { writer ->
+                writer.writeEntry("first.md", "first")
+                error("simulated failure")
+            }
+            fail("expected IllegalStateException")
+        } catch (expected: IllegalStateException) {
+            // expected
+        }
+
+        assertFalse("target file should have been deleted on failure", target.exists())
+    }
+
+    private fun readZipEntries(file: java.io.File): Map<String, String> {
         val out = mutableMapOf<String, String>()
-        java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(bytes)).use { zis ->
+        java.util.zip.ZipInputStream(file.inputStream()).use { zis ->
             var entry = zis.nextEntry
             while (entry != null) {
                 out[entry.name] = zis.readBytes().toString(Charsets.UTF_8)
@@ -223,9 +244,9 @@ class ChatMarkdownExporterTest {
         return out
     }
 
-    private fun readZipEntryOrder(bytes: ByteArray): List<String> {
+    private fun readZipEntryOrder(file: java.io.File): List<String> {
         val out = mutableListOf<String>()
-        java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(bytes)).use { zis ->
+        java.util.zip.ZipInputStream(file.inputStream()).use { zis ->
             var entry = zis.nextEntry
             while (entry != null) {
                 out.add(entry.name)

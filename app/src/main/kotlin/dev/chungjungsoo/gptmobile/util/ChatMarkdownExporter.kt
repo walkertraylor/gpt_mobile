@@ -74,15 +74,25 @@ object ChatMarkdownExporter {
         return users to orderedAssistants
     }
 
-    fun buildZip(entries: List<Pair<String, String>>): ByteArray {
-        val buffer = java.io.ByteArrayOutputStream()
-        java.util.zip.ZipOutputStream(buffer).use { zos ->
-            entries.forEach { (name, content) ->
-                zos.putNextEntry(java.util.zip.ZipEntry(name))
-                zos.write(content.toByteArray(Charsets.UTF_8))
-                zos.closeEntry()
+    fun writeZip(target: java.io.File, block: (ZipWriter) -> Unit) {
+        var success = false
+        try {
+            target.outputStream().use { fos ->
+                java.util.zip.ZipOutputStream(fos).use { zos ->
+                    block(ZipWriter(zos))
+                }
             }
+            success = true
+        } finally {
+            if (!success) target.delete()
         }
-        return buffer.toByteArray()
+    }
+}
+
+class ZipWriter internal constructor(private val zos: java.util.zip.ZipOutputStream) {
+    fun writeEntry(name: String, content: String) {
+        zos.putNextEntry(java.util.zip.ZipEntry(name))
+        zos.write(content.toByteArray(Charsets.UTF_8))
+        zos.closeEntry()
     }
 }
