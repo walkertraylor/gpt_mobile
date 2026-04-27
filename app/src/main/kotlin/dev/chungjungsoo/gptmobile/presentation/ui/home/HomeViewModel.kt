@@ -207,7 +207,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    suspend fun exportSelectedChats(): ExportArtifact? {
+    suspend fun exportSelectedChats(outputDir: java.io.File): ExportArtifact? {
         val selected = _chatListState.value.chats.filterIndexed { idx, _ ->
             _chatListState.value.selectedChats[idx]
         }
@@ -216,42 +216,48 @@ class HomeViewModel @Inject constructor(
 
         val exportedOn = formatCurrentDateTime()
         val platforms = _platformState.value
+        val nowMillis = System.currentTimeMillis()
 
-        val perChatMarkdown = withContext(Dispatchers.IO) {
-            selected.map { chat ->
+        val artifact = withContext(Dispatchers.IO) {
+            if (selected.size == 1) {
+                val chat = selected.single()
                 val messages = chatRepository.fetchMessagesV2(chat.id)
                 val grouped = ChatMarkdownExporter.groupMessagesForExport(
                     messages = messages,
                     enabledPlatformOrder = chat.enabledPlatform
                 )
-                chat to ChatMarkdownExporter.buildMarkdown(
+                val markdown = ChatMarkdownExporter.buildMarkdown(
                     chat = chat,
                     userMessages = grouped.first,
                     assistantMessages = grouped.second,
                     platforms = platforms,
                     exportedOn = exportedOn
                 )
+                val file = java.io.File(outputDir, ExportFilenames.buildSingleChatFileName(chat, nowMillis))
+                file.writeText(markdown)
+                ExportArtifact(file = file, mimeType = "text/markdown")
+            } else {
+                val fileNames = ExportFilenames.buildChatFileNames(selected)
+                val zipFile = java.io.File(outputDir, ExportFilenames.buildArchiveFileName(nowMillis))
+                ChatMarkdownExporter.writeZip(zipFile) { writer ->
+                    selected.forEach { chat ->
+                        val messages = chatRepository.fetchMessagesV2(chat.id)
+                        val grouped = ChatMarkdownExporter.groupMessagesForExport(
+                            messages = messages,
+                            enabledPlatformOrder = chat.enabledPlatform
+                        )
+                        val markdown = ChatMarkdownExporter.buildMarkdown(
+                            chat = chat,
+                            userMessages = grouped.first,
+                            assistantMessages = grouped.second,
+                            platforms = platforms,
+                            exportedOn = exportedOn
+                        )
+                        writer.writeEntry(fileNames[chat.id] ?: "chat_${chat.id}.md", markdown)
+                    }
+                }
+                ExportArtifact(file = zipFile, mimeType = "application/zip")
             }
-        }
-
-        val artifact = if (perChatMarkdown.size == 1) {
-            val (chat, markdown) = perChatMarkdown.single()
-            ExportArtifact(
-                fileName = ExportFilenames.buildSingleChatFileName(chat, System.currentTimeMillis()),
-                bytes = markdown.toByteArray(Charsets.UTF_8),
-                mimeType = "text/markdown"
-            )
-        } else {
-            val fileNames = ExportFilenames.buildChatFileNames(selected)
-            val entries = perChatMarkdown.map { (chat, markdown) ->
-                (fileNames[chat.id] ?: "chat_${chat.id}.md") to markdown
-            }
-            val zipBytes = withContext(Dispatchers.IO) { ChatMarkdownExporter.buildZip(entries) }
-            ExportArtifact(
-                fileName = ExportFilenames.buildArchiveFileName(System.currentTimeMillis()),
-                bytes = zipBytes,
-                mimeType = "application/zip"
-            )
         }
 
         disableSelectionMode()

@@ -4,6 +4,7 @@ import dev.chungjungsoo.gptmobile.data.database.entity.ChatRoomV2
 import dev.chungjungsoo.gptmobile.data.database.entity.MessageV2
 import dev.chungjungsoo.gptmobile.data.database.entity.PlatformV2
 import dev.chungjungsoo.gptmobile.data.model.ClientType
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -187,7 +188,7 @@ class ChatMarkdownExporterTest {
         PlatformV2(uid = uid, name = name, compatibleType = ClientType.OPENAI, apiUrl = "", model = "")
 
     @Test
-    fun `writeZip writes one entry per call to writeEntry`() {
+    fun `writeZip writes one entry per call to writeEntry`() = runBlocking {
         val target = tempFolder.newFile("test.zip")
 
         ChatMarkdownExporter.writeZip(target) { writer ->
@@ -203,7 +204,7 @@ class ChatMarkdownExporterTest {
     }
 
     @Test
-    fun `writeZip preserves insertion order of entries`() {
+    fun `writeZip preserves insertion order of entries`() = runBlocking {
         val target = tempFolder.newFile("ordered.zip")
 
         ChatMarkdownExporter.writeZip(target) { writer ->
@@ -215,7 +216,7 @@ class ChatMarkdownExporterTest {
     }
 
     @Test
-    fun `writeZip deletes the target file when the block throws`() {
+    fun `writeZip deletes the target file when the block throws`() = runBlocking {
         val target = tempFolder.newFile("doomed.zip")
 
         try {

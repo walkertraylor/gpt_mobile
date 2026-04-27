@@ -74,7 +74,7 @@ object ChatMarkdownExporter {
         return users to orderedAssistants
     }
 
-    fun writeZip(target: java.io.File, block: (ZipWriter) -> Unit) {
+    suspend fun writeZip(target: java.io.File, block: suspend (ZipWriter) -> Unit) {
         var success = false
         try {
             target.outputStream().use { fos ->
